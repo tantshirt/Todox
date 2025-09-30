@@ -2,11 +2,12 @@
 MongoDB database connection
 Provides async MongoDB client using Motor
 """
+from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from .config import settings
 
 # Global client instance
-client: AsyncIOMotorClient | None = None
+client: Optional[AsyncIOMotorClient] = None
 
 
 async def connect_to_database():
