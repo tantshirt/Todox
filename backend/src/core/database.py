@@ -26,6 +26,7 @@ async def connect_to_database():
     # Create indexes
     from ..repositories.user_repository import UserRepository
     from ..repositories.task_repository import TaskRepository
+    from ..repositories.label_repository import LabelRepository
     db = get_database()
     
     user_repo = UserRepository(db)
@@ -33,6 +34,9 @@ async def connect_to_database():
     
     task_repo = TaskRepository(db)
     await task_repo.ensure_indexes()
+    
+    label_repo = LabelRepository(db)
+    await label_repo.ensure_indexes()
     
     print("Database indexes created")
 
