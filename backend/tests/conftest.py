@@ -7,6 +7,7 @@ from httpx import AsyncClient, ASGITransport
 
 from src.main import app
 from src.core.config import settings
+from src.core import database
 
 
 @pytest_asyncio.fixture
@@ -23,8 +24,25 @@ async def test_db():
 
 
 @pytest_asyncio.fixture
-async def async_client():
-    """Provide async HTTP client for API testing"""
+async def async_client(test_db):
+    """Provide async HTTP client for API testing with database initialized"""
+    # Initialize database client for testing
+    database.client = AsyncIOMotorClient(settings.MONGODB_URI)
+    
+    # Override get_database to use test database
+    from src.core.database import get_database
+    
+    def override_get_database():
+        return test_db
+    
+    app.dependency_overrides[get_database] = override_get_database
+    
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+    
+    # Cleanup
+    app.dependency_overrides.clear()
+    if database.client:
+        database.client.close()
+        database.client = None

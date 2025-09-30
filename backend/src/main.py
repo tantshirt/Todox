@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from .core.database import connect_to_database, close_database_connection
+from .api.v1 import auth
 
 
 @asynccontextmanager
@@ -35,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(auth.router)
 
 @app.get("/")
 async def root():
