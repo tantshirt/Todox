@@ -3,10 +3,10 @@ Task service
 Business logic for task management
 """
 from bson import ObjectId
-from typing import List
+from typing import List, Optional
 
 from ..repositories.task_repository import TaskRepository
-from ..models.task import TaskCreate, TaskResponse
+from ..models.task import TaskCreate, TaskUpdate, TaskResponse
 
 
 class TaskService:
@@ -47,3 +47,47 @@ class TaskService:
         """
         tasks = await self.task_repo.find_by_owner(ObjectId(owner_id))
         return [TaskResponse(**task.model_dump()) for task in tasks]
+    
+    async def update_task(
+        self,
+        task_id: str,
+        owner_id: str,
+        task_data: TaskUpdate
+    ) -> Optional[TaskResponse]:
+        """
+        Update a task
+        
+        Args:
+            task_id: Task ID
+            owner_id: User's ID
+            task_data: Fields to update
+            
+        Returns:
+            Updated TaskResponse or None if not found/not owned
+        """
+        # Convert to dict, excluding None values
+        update_dict = task_data.model_dump(exclude_none=True)
+        
+        task = await self.task_repo.update_task(
+            ObjectId(task_id),
+            ObjectId(owner_id),
+            update_dict
+        )
+        
+        return TaskResponse(**task.model_dump()) if task else None
+    
+    async def delete_task(self, task_id: str, owner_id: str) -> bool:
+        """
+        Delete a task
+        
+        Args:
+            task_id: Task ID
+            owner_id: User's ID
+            
+        Returns:
+            True if deleted, False if not found/not owned
+        """
+        return await self.task_repo.delete_task(
+            ObjectId(task_id),
+            ObjectId(owner_id)
+        )

@@ -8,9 +8,10 @@ from typing import List
 from ...core.database import get_database
 from ...repositories.task_repository import TaskRepository
 from ...services.task_service import TaskService
-from ...schemas.task import TaskCreate, TaskResponse
+from ...schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from ...models.user import UserInDB
 from ...middleware.auth_middleware import get_current_user
+from fastapi import HTTPException
 
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -64,3 +65,61 @@ async def get_tasks(
     Returns empty array if user has no tasks.
     """
     return await task_service.get_tasks_by_owner(current_user.id)
+
+
+@router.patch(
+    "/{task_id}",
+    response_model=TaskResponse,
+    summary="Update a task",
+    description="Update task fields (partial update supported)"
+)
+async def update_task(
+    task_id: str,
+    task_data: TaskUpdate,
+    current_user: UserInDB = Depends(get_current_user),
+    task_service: TaskService = Depends(get_task_service)
+):
+    """
+    Update a task
+    
+    - **task_id**: Task ID to update
+    - Any combination of: title, description, priority, deadline, status, label_ids
+    
+    Returns updated task or 404 if not found/not owned by user
+    """
+    updated_task = await task_service.update_task(task_id, current_user.id, task_data)
+    
+    if not updated_task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    return updated_task
+
+
+@router.delete(
+    "/{task_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a task",
+    description="Delete a task permanently"
+)
+async def delete_task(
+    task_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+    task_service: TaskService = Depends(get_task_service)
+):
+    """
+    Delete a task
+    
+    - **task_id**: Task ID to delete
+    
+    Returns 204 No Content on success, 404 if not found/not owned by user
+    """
+    deleted = await task_service.delete_task(task_id, current_user.id)
+    
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
