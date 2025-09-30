@@ -165,3 +165,123 @@ async def test_create_task_owner_id_from_token(async_client: AsyncClient, auth_h
     assert response.status_code == 201
     data = response.json()
     assert data["owner_id"] == auth_user.id
+
+
+# GET /tasks tests
+@pytest.mark.asyncio
+async def test_get_tasks_authenticated_user(async_client: AsyncClient, auth_headers: dict):
+    """Test authenticated user can get their tasks"""
+    # Create a task first
+    await async_client.post(
+        "/tasks",
+        json={"title": "Task 1", "priority": "High", "deadline": "2025-12-31"},
+        headers=auth_headers
+    )
+    
+    # Get tasks
+    response = await async_client.get("/tasks", headers=auth_headers)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert data[0]["title"] == "Task 1"
+
+
+@pytest.mark.asyncio
+async def test_get_tasks_empty_array(async_client: AsyncClient, test_db):
+    """Test GET /tasks returns empty array for user with no tasks"""
+    # Create a new user with no tasks
+    user_repo = UserRepository(test_db)
+    new_user = await user_repo.create_user(
+        email="notasks@example.com",
+        hashed_password=hash_password("password123")
+    )
+    
+    token = create_access_token(new_user.id)
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    response = await async_client.get("/tasks", headers=headers)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data == []
+
+
+@pytest.mark.asyncio
+async def test_get_tasks_requires_authentication(async_client: AsyncClient):
+    """Test GET /tasks without token returns 403"""
+    response = await async_client.get("/tasks")
+    
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_tasks_ownership_isolation(async_client: AsyncClient, test_db):
+    """Test user A cannot see user B's tasks"""
+    user_repo = UserRepository(test_db)
+    
+    # Create user A and their task
+    user_a = await user_repo.create_user(
+        email="usera@example.com",
+        hashed_password=hash_password("password123")
+    )
+    token_a = create_access_token(user_a.id)
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    
+    await async_client.post(
+        "/tasks",
+        json={"title": "User A Task", "priority": "High", "deadline": "2025-12-31"},
+        headers=headers_a
+    )
+    
+    # Create user B
+    user_b = await user_repo.create_user(
+        email="userb@example.com",
+        hashed_password=hash_password("password123")
+    )
+    token_b = create_access_token(user_b.id)
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+    
+    # User B gets their tasks
+    response = await async_client.get("/tasks", headers=headers_b)
+    
+    assert response.status_code == 200
+    data = response.json()
+    # User B should have no tasks (user A's task not visible)
+    assert data == []
+
+
+@pytest.mark.asyncio
+async def test_get_tasks_sorted_newest_first(async_client: AsyncClient, auth_headers: dict):
+    """Test tasks are sorted by created_at descending (newest first)"""
+    # Create multiple tasks
+    task1_response = await async_client.post(
+        "/tasks",
+        json={"title": "First Task", "priority": "High", "deadline": "2025-12-31"},
+        headers=auth_headers
+    )
+    task1_id = task1_response.json()["id"]
+    
+    task2_response = await async_client.post(
+        "/tasks",
+        json={"title": "Second Task", "priority": "High", "deadline": "2025-12-31"},
+        headers=auth_headers
+    )
+    task2_id = task2_response.json()["id"]
+    
+    # Get tasks
+    response = await async_client.get("/tasks", headers=auth_headers)
+    
+    assert response.status_code == 200
+    tasks = response.json()
+    assert len(tasks) >= 2
+    
+    # Find our tasks in the list
+    our_tasks = [t for t in tasks if t["id"] in [task1_id, task2_id]]
+    assert len(our_tasks) == 2
+    
+    # Newest (task2) should come before task1
+    task2_index = next(i for i, t in enumerate(tasks) if t["id"] == task2_id)
+    task1_index = next(i for i, t in enumerate(tasks) if t["id"] == task1_id)
+    assert task2_index < task1_index

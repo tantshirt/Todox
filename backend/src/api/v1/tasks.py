@@ -3,6 +3,7 @@ Task routes
 Endpoints for task management
 """
 from fastapi import APIRouter, Depends, status
+from typing import List
 
 from ...core.database import get_database
 from ...repositories.task_repository import TaskRepository
@@ -44,3 +45,22 @@ async def create_task(
     Returns the created task with id, status (defaults to 'open'), and timestamps
     """
     return await task_service.create_task(current_user.id, task_data)
+
+
+@router.get(
+    "/",
+    response_model=List[TaskResponse],
+    summary="Get all tasks",
+    description="Get all tasks for the authenticated user"
+)
+async def get_tasks(
+    current_user: UserInDB = Depends(get_current_user),
+    task_service: TaskService = Depends(get_task_service)
+):
+    """
+    Get all tasks for the current user
+    
+    Returns array of tasks sorted by created_at (newest first).
+    Returns empty array if user has no tasks.
+    """
+    return await task_service.get_tasks_by_owner(current_user.id)
