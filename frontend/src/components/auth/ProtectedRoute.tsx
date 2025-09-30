@@ -1,24 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 
-export default function Home() {
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (user) {
-        router.push('/tasks');
-      } else {
-        router.push('/auth/login');
-      }
+    if (!isLoading && !user) {
+      router.push('/auth/login');
     }
   }, [user, isLoading, router]);
 
-  // Show loading while checking auth state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -30,5 +29,9 @@ export default function Home() {
     );
   }
 
-  return null; // Will redirect via useEffect
+  if (!user) {
+    return null; // Will redirect via useEffect
+  }
+
+  return <>{children}</>;
 }

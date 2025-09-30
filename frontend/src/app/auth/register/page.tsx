@@ -1,18 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { register } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { registerSchema, type RegisterFormData } from '@/lib/validations';
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const { register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
@@ -41,11 +39,9 @@ export default function RegisterPage() {
 
     try {
       await register(formData.email, formData.password);
-      toast.success('Registration successful! Please log in.');
-      router.push('/auth/login');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Registration failed';
-      toast.error(message);
+      // Auth context handles toast and redirect
+    } catch {
+      // Error toast already shown by auth context
     } finally {
       setIsLoading(false);
     }

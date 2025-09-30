@@ -1,18 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { login } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -40,18 +38,10 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await login(formData.email, formData.password);
-      
-      // Storing JWT in localStorage for MVP simplicity.
-      // Production consideration: Use httpOnly cookies to prevent XSS attacks.
-      // Trade-off: localStorage is vulnerable to XSS but easier to implement.
-      localStorage.setItem('access_token', response.access_token);
-      
-      toast.success('Login successful!');
-      router.push('/tasks');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Login failed';
-      toast.error(message);
+      await login(formData.email, formData.password);
+      // Auth context handles token storage and redirect
+    } catch {
+      // Error toast already shown by auth context
     } finally {
       setIsLoading(false);
     }
