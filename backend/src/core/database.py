@@ -25,9 +25,15 @@ async def connect_to_database():
     
     # Create indexes
     from ..repositories.user_repository import UserRepository
+    from ..repositories.task_repository import TaskRepository
     db = get_database()
+    
     user_repo = UserRepository(db)
     await user_repo.ensure_indexes()
+    
+    task_repo = TaskRepository(db)
+    await task_repo.ensure_indexes()
+    
     print("Database indexes created")
 
 
