@@ -119,18 +119,72 @@ npm run lint
 
 ## Deployment
 
-### Frontend (Vercel)
-
-1. Connect your GitHub repository to Vercel
-2. Set root directory to `frontend`
-3. Configure environment variable: `NEXT_PUBLIC_API_URL` (your Railway backend URL)
-4. Deploy
-
 ### Backend (Railway)
 
-1. Connect your GitHub repository to Railway
-2. Configure environment variables (see `backend/.env.example`)
-3. Railway will auto-detect FastAPI and deploy
+**Step 1: Create Railway Project**
+1. Sign up at [Railway](https://railway.app)
+2. Create new project and connect your GitHub repository
+3. Railway will automatically detect Python/FastAPI
+
+**Step 2: Configure Environment Variables**
+
+In Railway dashboard, add these environment variables:
+
+```
+MONGODB_URI=mongodb+srv://your-username:password@cluster.mongodb.net/todox?retryWrites=true&w=majority
+JWT_SECRET=your-production-secret-32-chars-minimum
+JWT_EXPIRES_IN=3600
+JWT_ALGORITHM=HS256
+CORS_ORIGINS=https://your-app.vercel.app
+```
+
+**Step 3: Deploy**
+- Railway deploys automatically on push to main
+- Note your Railway URL (e.g., `https://todox-backend.up.railway.app`)
+- Test health check: `curl https://your-railway-url.up.railway.app/health`
+
+### Frontend (Vercel)
+
+**Step 1: Create Vercel Project**
+1. Sign up at [Vercel](https://vercel.com)
+2. Import your GitHub repository
+3. Vercel will automatically detect Next.js
+
+**Step 2: Configure Project Settings**
+- Set **Root Directory** to `frontend`
+- Framework Preset: Next.js (auto-detected)
+
+**Step 3: Configure Environment Variables**
+
+Add in Vercel dashboard:
+
+```
+NEXT_PUBLIC_API_URL=https://your-railway-url.up.railway.app
+```
+
+**Step 4: Deploy**
+- Vercel deploys automatically on push to main
+- Get your production URL (e.g., `https://todox.vercel.app`)
+
+**Step 5: Update CORS**
+- Go back to Railway dashboard
+- Update `CORS_ORIGINS` to include your Vercel URL:
+  ```
+  CORS_ORIGINS=http://localhost:3000,https://your-app.vercel.app
+  ```
+
+### E2E Testing
+
+**Run tests locally:**
+```bash
+cd e2e
+npm test
+```
+
+**Test against production:**
+```bash
+E2E_BASE_URL=https://your-app.vercel.app npm test
+```
 
 ## Documentation
 
