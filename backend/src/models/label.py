@@ -2,7 +2,7 @@
 Label data models
 Pydantic models for label entities
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 
@@ -23,12 +23,11 @@ class LabelUpdate(LabelBase):
 
 class LabelInDB(LabelBase):
     """Label model as stored in database"""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     owner_id: str
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 
 # Alias for API responses

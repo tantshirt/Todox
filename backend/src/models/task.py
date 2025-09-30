@@ -2,7 +2,7 @@
 Task data models
 Pydantic models for task entities
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Literal
 from datetime import datetime, date
 
@@ -35,15 +35,14 @@ class TaskUpdate(BaseModel):
 
 class TaskInDB(TaskBase):
     """Task model as stored in database"""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     status: TaskStatus = 'open'
     label_ids: List[str] = Field(default_factory=list)
     owner_id: str
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 
 # Alias for API responses
