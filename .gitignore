@@ -1,0 +1,37 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+
+# Build outputs
+.next/
+dist/
+build/
+
+# Python artifacts
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
