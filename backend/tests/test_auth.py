@@ -229,3 +229,125 @@ async def test_token_signature_valid(async_client: AsyncClient, test_user):
     )
     
     assert payload is not None
+
+
+# JWT Middleware tests
+@pytest.mark.asyncio
+async def test_get_me_with_valid_token(async_client: AsyncClient, test_user):
+    """Test GET /auth/me with valid token returns user info"""
+    # Login to get token
+    login_response = await async_client.post(
+        "/auth/login",
+        json={"email": "testuser@example.com", "password": "password123"}
+    )
+    token = login_response.json()["access_token"]
+    
+    # Call /auth/me with token
+    response = await async_client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == "testuser@example.com"
+    assert data["id"] == test_user.id
+    assert "hashed_password" not in data
+
+
+@pytest.mark.asyncio
+async def test_get_me_without_token(async_client: AsyncClient):
+    """Test GET /auth/me without token returns 401"""
+    response = await async_client.get("/auth/me")
+    
+    assert response.status_code == 403  # HTTPBearer returns 403 for missing auth
+
+
+@pytest.mark.asyncio
+async def test_get_me_with_invalid_token(async_client: AsyncClient):
+    """Test GET /auth/me with malformed token returns 401"""
+    response = await async_client.get(
+        "/auth/me",
+        headers={"Authorization": "Bearer invalid-token-string"}
+    )
+    
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_me_with_wrong_signature(async_client: AsyncClient, test_user):
+    """Test GET /auth/me with token signed by wrong secret returns 401"""
+    # Create token with different secret
+    wrong_token = jwt.encode(
+        {"sub": test_user.id, "exp": 9999999999},
+        "wrong-secret-key",
+        algorithm=settings.JWT_ALGORITHM
+    )
+    
+    response = await async_client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {wrong_token}"}
+    )
+    
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_me_with_expired_token(async_client: AsyncClient, test_user):
+    """Test GET /auth/me with expired token returns 401"""
+    from datetime import datetime, timedelta
+    from calendar import timegm
+    
+    # Create expired token (expired 1 hour ago)
+    past_time = datetime.utcnow() - timedelta(hours=1)
+    expired_payload = {
+        "sub": test_user.id,
+        "exp": timegm(past_time.utctimetuple()),
+        "iat": timegm(past_time.utctimetuple())
+    }
+    expired_token = jwt.encode(
+        expired_payload,
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM
+    )
+    
+    response = await async_client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {expired_token}"}
+    )
+    
+    assert response.status_code == 401
+
+
+# Integration test for complete auth flow
+@pytest.mark.asyncio
+async def test_complete_auth_flow(async_client: AsyncClient, test_db):
+    """Test complete authentication flow: register → login → access protected route"""
+    # Step 1: Register a new user
+    register_response = await async_client.post(
+        "/auth/register",
+        json={"email": "flowtest@example.com", "password": "testpass123"}
+    )
+    assert register_response.status_code == 201
+    registered_user = register_response.json()
+    
+    # Step 2: Login with registered credentials
+    login_response = await async_client.post(
+        "/auth/login",
+        json={"email": "flowtest@example.com", "password": "testpass123"}
+    )
+    assert login_response.status_code == 200
+    token_data = login_response.json()
+    assert "access_token" in token_data
+    
+    # Step 3: Access protected route with token
+    me_response = await async_client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {token_data['access_token']}"}
+    )
+    assert me_response.status_code == 200
+    user_data = me_response.json()
+    
+    # Step 4: Verify user data matches
+    assert user_data["email"] == "flowtest@example.com"
+    assert user_data["id"] == registered_user["id"]

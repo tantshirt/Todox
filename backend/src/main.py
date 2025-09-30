@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from .core.database import connect_to_database, close_database_connection
+from .core.config import settings
 from .api.v1 import auth
 
 
@@ -28,10 +29,9 @@ app = FastAPI(
 )
 
 # CORS middleware configuration
-# Will be properly configured with environment variables in later stories
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Will use CORS_ORIGINS env var later
+    allow_origins=settings.CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

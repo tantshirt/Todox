@@ -8,7 +8,8 @@ from ...core.database import get_database
 from ...repositories.user_repository import UserRepository
 from ...services.auth_service import AuthService
 from ...schemas.auth import RegisterRequest, LoginRequest, TokenResponse
-from ...models.user import UserResponse
+from ...models.user import UserResponse, UserInDB
+from ...middleware.auth_middleware import get_current_user
 
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -61,3 +62,25 @@ async def login(
     Returns JWT access token for authenticated requests
     """
     return await auth_service.login(data.email, data.password)
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get current user",
+    description="Get authenticated user's information"
+)
+async def get_current_user_info(
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Get current authenticated user information
+    
+    Requires valid JWT token in Authorization header
+    """
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at
+    )
