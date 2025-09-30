@@ -4,11 +4,26 @@ FastAPI application entry point
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
+from .core.database import connect_to_database, close_database_connection
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
+    # Startup
+    await connect_to_database()
+    yield
+    # Shutdown
+    await close_database_connection()
+
 
 app = FastAPI(
     title="Todox API",
     description="Task management API with labels and priorities",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware configuration
@@ -28,5 +43,17 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy"}
+    """
+    Health check endpoint
+    Verifies API is running and database is connected
+    """
+    try:
+        # Ping database to verify connection
+        from .core.database import client
+        if client:
+            await client.admin.command('ping')
+            return {"status": "healthy", "database": "connected"}
+        else:
+            return {"status": "unhealthy", "database": "not initialized"}, 503
+    except Exception as e:
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}, 503
