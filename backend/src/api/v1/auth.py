@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, status
 from ...core.database import get_database
 from ...repositories.user_repository import UserRepository
 from ...services.auth_service import AuthService
-from ...schemas.auth import RegisterRequest
+from ...schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from ...models.user import UserResponse
 
 
@@ -39,3 +39,25 @@ async def register(
     Returns the created user (excludes password)
     """
     return await auth_service.register_user(data.email, data.password)
+
+
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Login user",
+    description="Authenticate user and receive JWT access token"
+)
+async def login(
+    data: LoginRequest,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Login with email and password
+    
+    - **email**: User's registered email
+    - **password**: User's password
+    
+    Returns JWT access token for authenticated requests
+    """
+    return await auth_service.login(data.email, data.password)

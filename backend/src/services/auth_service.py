@@ -7,7 +7,9 @@ from pymongo.errors import DuplicateKeyError
 
 from ..repositories.user_repository import UserRepository
 from ..models.user import UserResponse
-from ..core.security import hash_password
+from ..schemas.auth import TokenResponse
+from ..core.security import hash_password, verify_password, create_access_token
+from ..core.config import settings
 
 
 class AuthService:
@@ -57,4 +59,42 @@ class AuthService:
             email=user.email,
             created_at=user.created_at,
             updated_at=user.updated_at
+        )
+    
+    async def login(self, email: str, password: str) -> TokenResponse:
+        """
+        Authenticate user and generate JWT token
+        
+        Args:
+            email: User's email address
+            password: Plain text password
+            
+        Returns:
+            TokenResponse with JWT access token
+            
+        Raises:
+            HTTPException 401: Invalid credentials (email or password)
+        """
+        # Find user by email
+        user = await self.user_repo.find_by_email(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+        # Verify password
+        if not verify_password(password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+        # Generate JWT token
+        access_token = create_access_token(user.id)
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=settings.JWT_EXPIRES_IN
         )
