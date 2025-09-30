@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Task, TaskPriority } from '@/types/task';
 import { createTaskSchema, type CreateTaskFormData } from '@/lib/validations';
+import { getDeadlineStatus, getDeadlineMessage } from '@/lib/task-utils';
+import { toast } from 'sonner';
 
 export default function TasksPage() {
   const { user, logout } = useAuth();
@@ -37,6 +39,70 @@ export default function TasksPage() {
   });
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof CreateTaskFormData, string>>>({});
+  
+  // Epic 4: Filtering and Search
+  const [selectedLabelFilters, setSelectedLabelFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Apply filters and search
+  const filteredTasks = tasks
+    .filter(task => {
+      if (selectedLabelFilters.length === 0) return true;
+      return selectedLabelFilters.every(labelId => task.label_ids?.includes(labelId));
+    })
+    .filter(task => {
+      if (!searchQuery) return true;
+      const searchLower = searchQuery.toLowerCase();
+      return task.title.toLowerCase().includes(searchLower) ||
+             (task.description?.toLowerCase().includes(searchLower) || false);
+    });
+  
+  // Epic 4: Export/Import
+  const handleExport = () => {
+    const exportData = {
+      version: "1.0",
+      exported_at: new Date().toISOString(),
+      tasks: tasks,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `todox-tasks-${user?.email}-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${tasks.length} tasks`);
+  };
+  
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.tasks || !Array.isArray(data.tasks)) {
+        toast.error('Invalid file format');
+        return;
+      }
+      let imported = 0;
+      for (const task of data.tasks) {
+        try {
+          createTask({
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            deadline: task.deadline,
+            label_ids: task.label_ids || [],
+          });
+          imported++;
+        } catch {}
+      }
+      toast.success(`Imported ${imported} tasks`);
+    } catch {
+      toast.error('Failed to read file');
+    }
+    e.target.value = '';
+  };
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +191,16 @@ export default function TasksPage() {
                 Welcome, {user?.email}!
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={tasks.length === 0}>
+                ⬇️ Export
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <label className="cursor-pointer">
+                  ⬆️ Import
+                  <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                </label>
+              </Button>
               <Link href="/labels">
                 <Button variant="outline">🏷️ Labels</Button>
               </Link>
@@ -230,6 +305,62 @@ export default function TasksPage() {
             </div>
           </div>
 
+          {/* Search Bar */}
+          {!isLoading && tasks.length > 0 && (
+            <div className="mb-4">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="🔍 Search tasks by title or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-10"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Label Filters */}
+          {!isLoading && tasks.length > 0 && labels.length > 0 && (
+            <div className="mb-4 p-4 bg-white dark:bg-slate-900 rounded-lg border">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="font-semibold">Filter by Labels:</Label>
+                {selectedLabelFilters.length > 0 && (
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedLabelFilters([])}>
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {labels.map((label) => (
+                  <Badge
+                    key={label.id}
+                    variant={selectedLabelFilters.includes(label.id) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setSelectedLabelFilters(prev =>
+                        prev.includes(label.id)
+                          ? prev.filter(id => id !== label.id)
+                          : [...prev, label.id]
+                      );
+                    }}
+                  >
+                    {selectedLabelFilters.includes(label.id) && '✓ '}
+                    {label.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Loading State */}
           {isLoading && (
             <div className="text-center py-12">
@@ -238,7 +369,7 @@ export default function TasksPage() {
             </div>
           )}
 
-          {/* Empty State */}
+          {/* Empty State - No Tasks */}
           {!isLoading && tasks.length === 0 && (
             <Card className="text-center py-12">
               <CardHeader>
@@ -253,10 +384,28 @@ export default function TasksPage() {
             </Card>
           )}
 
+          {/* Empty State - No Matches */}
+          {!isLoading && tasks.length > 0 && filteredTasks.length === 0 && (
+            <Card className="text-center py-12">
+              <CardHeader>
+                <CardTitle>No tasks match your filters</CardTitle>
+                <CardDescription>
+                  {searchQuery && `No tasks found for "${searchQuery}"`}
+                  {selectedLabelFilters.length > 0 && !searchQuery && 'No tasks with selected labels'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => { setSearchQuery(''); setSelectedLabelFilters([]); }}>
+                  Clear Filters
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Task List */}
-          {!isLoading && tasks.length > 0 && (
+          {!isLoading && filteredTasks.length > 0 && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {tasks.map((task) => (
+              {filteredTasks.map((task) => (
                 <Card key={task.id} className={task.status === 'done' ? 'opacity-60' : ''}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
@@ -288,6 +437,17 @@ export default function TasksPage() {
                         <Badge variant="outline">
                           📅 {new Date(task.deadline).toLocaleDateString()}
                         </Badge>
+                        {/* Story 4.3: Deadline Warnings */}
+                        {getDeadlineStatus(task) === 'overdue' && (
+                          <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" title={getDeadlineMessage(task)}>
+                            🔴 {getDeadlineMessage(task)}
+                          </Badge>
+                        )}
+                        {getDeadlineStatus(task) === 'today' && (
+                          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                            ⚠️ Due today!
+                          </Badge>
+                        )}
                         {task.label_ids && task.label_ids.map((labelId) => {
                           const label = labels.find(l => l.id === labelId);
                           return label ? (
