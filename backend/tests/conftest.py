@@ -16,6 +16,15 @@ async def test_db():
     client = AsyncIOMotorClient(settings.MONGODB_URI)
     db = client[f"{settings.DATABASE_NAME}_test"]
     
+    # Create indexes for test database
+    from src.repositories.user_repository import UserRepository
+    from src.repositories.task_repository import TaskRepository
+    from src.repositories.label_repository import LabelRepository
+    
+    await UserRepository(db).ensure_indexes()
+    await TaskRepository(db).ensure_indexes()
+    await LabelRepository(db).ensure_indexes()
+    
     yield db
     
     # Cleanup after tests

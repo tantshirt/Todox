@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useTasks } from '@/hooks/useTasks';
+import { useLabels } from '@/hooks/useLabels';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +22,7 @@ import { createTaskSchema, type CreateTaskFormData } from '@/lib/validations';
 export default function TasksPage() {
   const { user, logout } = useAuth();
   const { tasks, isLoading, createTask, updateTask, deleteTask } = useTasks();
+  const { labels } = useLabels();
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -32,6 +35,7 @@ export default function TasksPage() {
     priority: 'Medium',
     deadline: new Date().toISOString().split('T')[0],
   });
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof CreateTaskFormData, string>>>({});
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -55,9 +59,11 @@ export default function TasksPage() {
       description: formData.description || undefined,
       priority: formData.priority as TaskPriority,
       deadline: formData.deadline,
+      label_ids: selectedLabels,
     });
 
     setFormData({ title: '', description: '', priority: 'Medium', deadline: new Date().toISOString().split('T')[0] });
+    setSelectedLabels([]);
     setIsCreateOpen(false);
   };
 
@@ -72,10 +78,12 @@ export default function TasksPage() {
         description: formData.description || undefined,
         priority: formData.priority as TaskPriority,
         deadline: formData.deadline,
+        label_ids: selectedLabels,
       },
     });
 
     setEditingTask(null);
+    setSelectedLabels([]);
   };
 
   const handleStatusToggle = (task: Task) => {
@@ -118,6 +126,9 @@ export default function TasksPage() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Link href="/labels">
+                <Button variant="outline">🏷️ Labels</Button>
+              </Link>
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
                   <Button>+ Create Task</Button>
@@ -175,6 +186,32 @@ export default function TasksPage() {
                         onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                       />
                       {formErrors.deadline && <p className="text-sm text-red-600 mt-1">{formErrors.deadline}</p>}
+                    </div>
+
+                    <div>
+                      <Label>Labels (optional)</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {labels.map((label) => (
+                          <Badge
+                            key={label.id}
+                            variant={selectedLabels.includes(label.id) ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              setSelectedLabels(prev =>
+                                prev.includes(label.id)
+                                  ? prev.filter(id => id !== label.id)
+                                  : [...prev, label.id]
+                              );
+                            }}
+                          >
+                            {selectedLabels.includes(label.id) && '✓ '}
+                            {label.name}
+                          </Badge>
+                        ))}
+                        {labels.length === 0 && (
+                          <p className="text-sm text-slate-500">No labels yet. Create labels first.</p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex justify-end gap-2">
@@ -244,13 +281,21 @@ export default function TasksPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Badge className={getPriorityColor(task.priority)}>
                           {task.priority}
                         </Badge>
                         <Badge variant="outline">
                           📅 {new Date(task.deadline).toLocaleDateString()}
                         </Badge>
+                        {task.label_ids && task.label_ids.map((labelId) => {
+                          const label = labels.find(l => l.id === labelId);
+                          return label ? (
+                            <Badge key={labelId} variant="secondary">
+                              🏷️ {label.name}
+                            </Badge>
+                          ) : null;
+                        })}
                       </div>
 
                       <div className="flex gap-2 pt-2">
@@ -267,6 +312,7 @@ export default function TasksPage() {
                                 priority: task.priority,
                                 deadline: task.deadline,
                               });
+                              setSelectedLabels(task.label_ids || []);
                             }}
                           >
                             ✏️ Edit
@@ -320,6 +366,29 @@ export default function TasksPage() {
                                   value={formData.deadline}
                                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                                 />
+                              </div>
+
+                              <div>
+                                <Label>Labels</Label>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {labels.map((label) => (
+                                    <Badge
+                                      key={label.id}
+                                      variant={selectedLabels.includes(label.id) ? "default" : "outline"}
+                                      className="cursor-pointer"
+                                      onClick={() => {
+                                        setSelectedLabels(prev =>
+                                          prev.includes(label.id)
+                                            ? prev.filter(id => id !== label.id)
+                                            : [...prev, label.id]
+                                        );
+                                      }}
+                                    >
+                                      {selectedLabels.includes(label.id) && '✓ '}
+                                      {label.name}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </div>
 
                               <div className="flex justify-end gap-2">

@@ -3,6 +3,7 @@
  */
 import type { AuthResponse, UserResponse } from "@/types/auth";
 import type { Task, TaskCreate, TaskUpdate } from "@/types/task";
+import type { Label, LabelCreate, LabelUpdate } from "@/types/label";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -98,5 +99,62 @@ export async function deleteTask(taskId: string): Promise<void> {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to delete task');
+  }
+}
+
+// Label API functions
+export async function getLabels(): Promise<Label[]> {
+  const response = await fetch(`${API_BASE_URL}/labels`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch labels');
+  }
+
+  return response.json();
+}
+
+export async function createLabel(labelData: LabelCreate): Promise<Label> {
+  const response = await fetch(`${API_BASE_URL}/labels`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(labelData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create label');
+  }
+
+  return response.json();
+}
+
+export async function updateLabel(labelId: string, labelData: LabelUpdate): Promise<Label> {
+  const response = await fetch(`${API_BASE_URL}/labels/${labelId}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(labelData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update label');
+  }
+
+  return response.json();
+}
+
+export async function deleteLabel(labelId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/labels/${labelId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete label');
   }
 }
