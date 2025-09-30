@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from .core.database import connect_to_database, close_database_connection
 from .core.config import settings
-from .api.v1 import auth
+from .api.v1 import auth, tasks
 
 
 @asynccontextmanager
@@ -39,6 +39,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(auth.router)
+app.include_router(tasks.router)
 
 @app.get("/")
 async def root():
