@@ -22,3 +22,9 @@ class TokenResponse(BaseModel):
     access_token: str = Field(..., description="JWT access token")
     token_type: str = Field(default="bearer", description="Token type")
     expires_in: int = Field(..., description="Token expiry time in seconds")
+
+
+class UpdatePasswordRequest(BaseModel):
+    """Schema for updating user password"""
+    current_password: str = Field(..., description="Current password for verification")
+    new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")

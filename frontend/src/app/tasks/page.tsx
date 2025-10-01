@@ -204,6 +204,9 @@ export default function TasksPage() {
               <Link href="/labels">
                 <Button variant="outline">🏷️ Labels</Button>
               </Link>
+              <Link href="/profile">
+                <Button variant="outline">👤 Profile</Button>
+              </Link>
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
                   <Button>+ Create Task</Button>

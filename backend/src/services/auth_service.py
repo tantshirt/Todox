@@ -98,3 +98,35 @@ class AuthService:
             token_type="bearer",
             expires_in=settings.JWT_EXPIRES_IN
         )
+    
+    async def update_password(self, user_id: str, current_password: str, new_password: str) -> None:
+        """
+        Update user password after verifying current password
+        
+        Args:
+            user_id: User's ID
+            current_password: Current password for verification
+            new_password: New password to set
+            
+        Raises:
+            HTTPException 401: Current password is incorrect
+            HTTPException 404: User not found
+        """
+        # Find user
+        user = await self.user_repo.find_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Verify current password
+        if not verify_password(current_password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current password is incorrect"
+            )
+        
+        # Hash new password and update
+        new_hashed_password = hash_password(new_password)
+        await self.user_repo.update_password(user_id, new_hashed_password)

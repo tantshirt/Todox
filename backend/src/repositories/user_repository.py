@@ -89,6 +89,24 @@ class UserRepository:
             updated_at=user["updated_at"]
         )
     
+    async def update_password(self, user_id: str, new_hashed_password: str) -> None:
+        """
+        Update user's password
+        
+        Args:
+            user_id: User's ID (string format)
+            new_hashed_password: New bcrypt hashed password
+        """
+        await self.collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "hashed_password": new_hashed_password,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+    
     async def ensure_indexes(self):
         """Create required indexes for users collection"""
         # Unique index on email to prevent duplicate registrations

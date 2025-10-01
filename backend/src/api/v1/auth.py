@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, status
 from ...core.database import get_database
 from ...repositories.user_repository import UserRepository
 from ...services.auth_service import AuthService
-from ...schemas.auth import RegisterRequest, LoginRequest, TokenResponse
+from ...schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UpdatePasswordRequest
 from ...models.user import UserResponse, UserInDB
 from ...middleware.auth_middleware import get_current_user
 
@@ -84,3 +84,30 @@ async def get_current_user_info(
         created_at=current_user.created_at,
         updated_at=current_user.updated_at
     )
+
+
+@router.patch(
+    "/update-password",
+    status_code=status.HTTP_200_OK,
+    summary="Update user password",
+    description="Change user password after verifying current password"
+)
+async def update_password(
+    data: UpdatePasswordRequest,
+    current_user: UserInDB = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Update user password
+    
+    - **current_password**: Current password for verification
+    - **new_password**: New password (minimum 8 characters)
+    
+    Requires valid JWT token in Authorization header
+    """
+    await auth_service.update_password(
+        current_user.id,
+        data.current_password,
+        data.new_password
+    )
+    return {"message": "Password updated successfully"}

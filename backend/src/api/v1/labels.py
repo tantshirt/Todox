@@ -13,7 +13,7 @@ from ...models.user import UserInDB
 from ...middleware.auth_middleware import get_current_user
 
 
-router = APIRouter(prefix="/labels", tags=["labels"], redirect_slashes=False)
+router = APIRouter(prefix="/labels", tags=["labels"])
 
 
 def get_label_service(db=Depends(get_database)) -> LabelService:

@@ -158,3 +158,20 @@ export async function deleteLabel(labelId: string): Promise<void> {
     throw new Error(error.detail || 'Failed to delete label');
   }
 }
+
+// User Profile API functions
+export async function updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/auth/update-password`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update password');
+  }
+}

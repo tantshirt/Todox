@@ -14,7 +14,7 @@ from ...middleware.auth_middleware import get_current_user
 from fastapi import HTTPException
 
 
-router = APIRouter(prefix="/tasks", tags=["tasks"], redirect_slashes=False)
+router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 def get_task_service(db=Depends(get_database)) -> TaskService:
