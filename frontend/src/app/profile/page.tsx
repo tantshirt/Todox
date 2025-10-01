@@ -47,9 +47,10 @@ export default function ProfilePage() {
         toast.success('Password updated successfully!');
         setIsEditing(false);
         setFormData({ ...formData, currentPassword: '', newPassword: '', confirmPassword: '' });
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to update password');
-        if (error.message.includes('incorrect')) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to update password';
+        toast.error(errorMessage);
+        if (errorMessage.includes('incorrect')) {
           setErrors({ currentPassword: 'Current password is incorrect' });
         }
       }
