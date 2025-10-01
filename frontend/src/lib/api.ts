@@ -47,7 +47,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
 
 // Task API functions
 export async function getTasks(): Promise<Task[]> {
-  const response = await fetch(`${API_BASE_URL}/tasks`, {
+  const response = await fetch(`${API_BASE_URL}/tasks/`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -61,7 +61,7 @@ export async function getTasks(): Promise<Task[]> {
 }
 
 export async function createTask(taskData: TaskCreate): Promise<Task> {
-  const response = await fetch(`${API_BASE_URL}/tasks`, {
+  const response = await fetch(`${API_BASE_URL}/tasks/`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(taskData),
@@ -104,7 +104,7 @@ export async function deleteTask(taskId: string): Promise<void> {
 
 // Label API functions
 export async function getLabels(): Promise<Label[]> {
-  const response = await fetch(`${API_BASE_URL}/labels`, {
+  const response = await fetch(`${API_BASE_URL}/labels/`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -118,7 +118,7 @@ export async function getLabels(): Promise<Label[]> {
 }
 
 export async function createLabel(labelData: LabelCreate): Promise<Label> {
-  const response = await fetch(`${API_BASE_URL}/labels`, {
+  const response = await fetch(`${API_BASE_URL}/labels/`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(labelData),
