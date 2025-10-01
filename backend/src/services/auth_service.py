@@ -112,8 +112,10 @@ class AuthService:
             HTTPException 401: Current password is incorrect
             HTTPException 404: User not found
         """
+        from bson import ObjectId
+        
         # Find user
-        user = await self.user_repo.find_by_id(user_id)
+        user = await self.user_repo.find_by_id(ObjectId(user_id))
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
