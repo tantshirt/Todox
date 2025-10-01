@@ -25,7 +25,8 @@ app = FastAPI(
     title="Todox API",
     description="Task management API with labels and priorities",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 # CORS middleware configuration
