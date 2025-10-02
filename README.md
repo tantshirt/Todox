@@ -4,7 +4,7 @@ A modern task management application with priorities, deadlines, and custom labe
 
 ## 🌐 Live Demo
 
-**Frontend:** https://frontend-dikdicjca-dres-projects-71e8c4e5.vercel.app  
+**Frontend:** https://todox-one.vercel.app
 **Backend API:** https://todox-backend-production.up.railway.app  
 **API Docs:** https://todox-backend-production.up.railway.app/docs
 
